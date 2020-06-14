@@ -22,8 +22,8 @@ public class BatchControllerImplTest {
 		String toFileName = "/Users/skull/Desktop/colpepe/lista.txt";
 
 		controller.setCredentials(username, password);
-		controller.setMaxToPerMessage(3);
-		controller.setSendLimit(11);
+		controller.setMaxRecipientsPerMessage(3);
+		controller.setMaxRecipients(11);
 		controller.setUseBCC(false);
 
 		controller.setMessageSubject("teste robô COLPEPE");

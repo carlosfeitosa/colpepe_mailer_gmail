@@ -22,7 +22,7 @@ import br.com.colpepe.mailer.controller.exception.BatchControllerNoFromException
 import br.com.colpepe.mailer.controller.exception.BatchControllerNoListFilename;
 import br.com.colpepe.mailer.controller.exception.BatchControllerNoMaxPerMessageException;
 import br.com.colpepe.mailer.controller.exception.BatchControllerNoMessageBodyController;
-import br.com.colpepe.mailer.controller.exception.BatchControllerNoSendLimitException;
+import br.com.colpepe.mailer.controller.exception.BatchControllerNoSendToLimitException;
 import br.com.colpepe.mailer.controller.exception.BatchControllerToListFileNotFound;
 import br.com.colpepe.mailer.service.smtp.SendMessageService;
 import br.com.colpepe.mailer.service.smtp.exception.SendMessageException;
@@ -40,8 +40,8 @@ public class BatchControllerImpl implements BatchController {
 	private String username;
 	private String password;
 	private boolean useBcc = false;
-	private int maxToPerMessage;
-	private int sendLimit;
+	private int maxRecipientsPerMessage;
+	private int maxRecipientsTotal;
 	private String from;
 
 	private String messageSubject;
@@ -59,8 +59,8 @@ public class BatchControllerImpl implements BatchController {
 
 		service = new SendMessageServiceImpl();
 
-		maxToPerMessage = 0;
-		sendLimit = 0;
+		maxRecipientsPerMessage = 0;
+		maxRecipientsTotal = 0;
 
 		lastProcessed = 0;
 	}
@@ -85,21 +85,21 @@ public class BatchControllerImpl implements BatchController {
 	}
 
 	@Override
-	public void setMaxToPerMessage(int maxToPerMessage) {
+	public void setMaxRecipientsPerMessage(int maxToPerMessage) {
 		logger.info("Recebido quantidade máxima de destinatários por mensagem");
 		String msg = String.format("Quantidade máxima de destinatários por mensagem: %d", maxToPerMessage);
 		logger.info(msg);
 
-		this.maxToPerMessage = maxToPerMessage;
+		this.maxRecipientsPerMessage = maxToPerMessage;
 	}
 
 	@Override
-	public void setSendLimit(int sendLimit) {
-		logger.info("Recebido quantidade máxima de envios");
-		String msg = String.format("Quantidade máxima de mensagens enviadas: %d", sendLimit);
+	public void setMaxRecipients(int sendLimit) {
+		logger.info("Recebido quantidade máxima de destinatários total");
+		String msg = String.format("Quantidade máxima de destinatários total: %d", sendLimit);
 		logger.info(msg);
 
-		this.sendLimit = sendLimit;
+		this.maxRecipientsTotal = sendLimit;
 	}
 
 	@Override
@@ -167,7 +167,7 @@ public class BatchControllerImpl implements BatchController {
 		try (BufferedReader reader = new BufferedReader(new FileReader(toListFilename))) {
 			while ((line = reader.readLine()) != null) {
 
-				if (maxToPerMessage == lista.size()) {
+				if (maxRecipientsPerMessage == lista.size()) {
 					destinatarios = String.join(",", lista);
 
 					sendMessage(mensagem, destinatarios);
@@ -177,7 +177,7 @@ public class BatchControllerImpl implements BatchController {
 
 					lista.clear();
 
-				} else if (lineNumber == sendLimit) {
+				} else if (lineNumber == maxRecipientsTotal) {
 
 					break;
 				}
@@ -301,12 +301,12 @@ public class BatchControllerImpl implements BatchController {
 			throw new BatchControllerNoCredentialsException();
 		}
 
-		if (0 == maxToPerMessage) {
+		if (0 == maxRecipientsPerMessage) {
 			throw new BatchControllerNoMaxPerMessageException();
 		}
 
-		if (0 == sendLimit) {
-			throw new BatchControllerNoSendLimitException();
+		if (0 == maxRecipientsTotal) {
+			throw new BatchControllerNoSendToLimitException();
 		}
 
 		if (null == from) {

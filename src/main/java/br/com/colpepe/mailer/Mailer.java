@@ -1,17 +1,17 @@
 package br.com.colpepe.mailer;
 
-import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import br.com.colpepe.mailer.controller.BatchController;
-import br.com.colpepe.mailer.controller.exception.BatchControllerException;
 import br.com.colpepe.mailer.controller.impl.BatchControllerImpl;
 import br.com.colpepe.mailer.exception.MailerNoCredentialsException;
 import br.com.colpepe.mailer.exception.MailerNoEmailFileNameException;
+import br.com.colpepe.mailer.exception.MailerNoFromException;
 import br.com.colpepe.mailer.exception.MailerNoMaxPerMessageException;
 import br.com.colpepe.mailer.exception.MailerNoSendLimitException;
+import br.com.colpepe.mailer.exception.MailerNoSubjectException;
 import br.com.colpepe.mailer.exception.MailerNoToFileNameException;
-import br.com.colpepe.mailer.service.smtp.exception.SendMessageException;
 
 /**
  * Classe main, interface com o usuário.
@@ -22,8 +22,8 @@ import br.com.colpepe.mailer.service.smtp.exception.SendMessageException;
 public class Mailer {
 	private static final String ARG_USERNAME = "username=";
 	private static final String ARG_PASSWORD = "password=";
-	private static final String ARG_TO_MESSAGE_LIMIT = "maxDestinatarios=";
-	private static final String ARG_MESSAGE_LIMIT = "maxMensagens=";
+	private static final String ARG_TO_MESSAGE_LIMIT = "maxDestinatariosPorMensagem=";
+	private static final String ARG_MESSAGE_LIMIT = "maxDestinatariosTotal=";
 	private static final String ARG_USE_BCC = "useBBC=";
 	private static final String ARG_EMAIL_FILENAME = "emailFilename=";
 	private static final String ARG_TO_FILENAME = "toFilename=";
@@ -43,7 +43,7 @@ public class Mailer {
 	private static final String HELP_TEXT = "\n\n### ATENÇÃO AO PARÂMETROS NECESSÁRIOS ###\n\n"
 			+ "Nome do usuario 					->	" + ARG_USERNAME + "\n" + "Senha							->	"
 			+ ARG_PASSWORD + "\n" + "Limite de destinatários por mensagem			->	" + ARG_TO_MESSAGE_LIMIT + "\n"
-			+ "Limite de mensagens para enviar				->	" + ARG_MESSAGE_LIMIT + "\n"
+			+ "Limite de destinatários para enviar			->	" + ARG_MESSAGE_LIMIT + "\n"
 			+ "Ocultar destinatários (BCC)				->	" + ARG_USE_BCC + "\n"
 			+ "Arquivo contendo o corpo do e-mail			->	" + ARG_EMAIL_FILENAME + "\n"
 			+ "Arquivo contendo a lista de destinatários 		->	" + ARG_TO_FILENAME + "\n"
@@ -52,7 +52,7 @@ public class Mailer {
 
 	static final Logger logger = Logger.getLogger(Mailer.class.getClass().getName());
 
-	public static void main(String[] args) throws IOException, BatchControllerException, SendMessageException {
+	public static void main(String[] args) throws Exception {
 		BatchController controller = new BatchControllerImpl();
 
 		logger.info("Lendo parametros informados");
@@ -63,8 +63,8 @@ public class Mailer {
 			checkParams();
 
 			controller.setCredentials(username, password);
-			controller.setMaxToPerMessage(maxDestinationPerMessage);
-			controller.setSendLimit(sendLimit);
+			controller.setMaxRecipientsPerMessage(maxDestinationPerMessage);
+			controller.setMaxRecipients(sendLimit);
 			controller.setUseBCC(useBCC);
 
 			controller.setMessageSubject(subject);
@@ -81,7 +81,7 @@ public class Mailer {
 			logger.info(msg);
 		} catch (Exception e) {
 			logger.info(HELP_TEXT);
-			logger.info("Problemas ao iniciar processamento: ".concat(e.getMessage()));
+			logger.log(Level.SEVERE, "Problemas ao processar mensagens", e);
 		}
 
 		logger.info("Processamento finalizado");
@@ -91,23 +91,25 @@ public class Mailer {
 	/**
 	 * Verifica se os parâmetros foram passados adequadamente.
 	 * 
-	 * @throws MailerNoCredentialsException   caso não sejam passadas as
-	 *                                               credenciais de acesso ao
-	 *                                               servidor
-	 * @throws MailerNoMaxPerMessageException caso nnao seja passado o número
-	 *                                               máximo de destinatários por
-	 *                                               mensagem
-	 * @throws MailerNoSendLimitException     caso não seja informado o
-	 *                                               limite de mensagens a enviar
-	 * @throws MailerNoEmailFileNameException caso não seja informado o nome
-	 *                                               do arquivo contendo o corpo do
-	 *                                               e-mail
-	 * @throws MailerNoToFileNameException             caso não seja informado o nome
-	 *                                               do arquivo contendo a lista de
-	 *                                               destinatários
+	 * @throws MailerNoCredentialsException   caso não sejam passadas as credenciais
+	 *                                        de acesso ao servidor
+	 * @throws MailerNoMaxPerMessageException caso nnao seja passado o número máximo
+	 *                                        de destinatários por mensagem
+	 * @throws MailerNoSendLimitException     caso não seja informado o limite de
+	 *                                        mensagens a enviar
+	 * @throws MailerNoEmailFileNameException caso não seja informado o nome do
+	 *                                        arquivo contendo o corpo do e-mail
+	 * @throws MailerNoToFileNameException    caso não seja informado o nome do
+	 *                                        arquivo contendo a lista de
+	 *                                        destinatários
+	 * @throws MailerNoSubjectException       caso não seja informado o assunto da
+	 *                                        mensagem
+	 * @throws MailerNoFromException          caso não seja informado um remetente
 	 */
 	private static void checkParams() throws MailerNoCredentialsException, MailerNoMaxPerMessageException,
-			MailerNoSendLimitException, MailerNoEmailFileNameException, MailerNoToFileNameException {
+			MailerNoSendLimitException, MailerNoEmailFileNameException, MailerNoToFileNameException,
+			MailerNoSubjectException, MailerNoFromException {
+
 		if (null == username) {
 			throw new MailerNoCredentialsException("Nenhum usuário foi informado");
 		}
@@ -132,10 +134,13 @@ public class Mailer {
 			throw new MailerNoToFileNameException();
 		}
 
+		if (null == subject) {
+			throw new MailerNoSubjectException();
+		}
 
-//		private static String subject;
-//		private static String from;
-
+		if (null == from) {
+			throw new MailerNoFromException();
+		}
 	}
 
 	/**

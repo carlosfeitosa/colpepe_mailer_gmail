@@ -35,14 +35,14 @@ public interface BatchController {
 	 * 
 	 * @param maxToPerMessage quantidade máxima de destinatários por mensagem
 	 */
-	public void setMaxToPerMessage(int maxToPerMessage);
+	public void setMaxRecipientsPerMessage(int maxToPerMessage);
 
 	/**
-	 * Configura o limite de envios.
+	 * Configura o limite de destinatários total.
 	 * 
 	 * @param sendLimit limite de envios
 	 */
-	public void setSendLimit(int sendLimit);
+	public void setMaxRecipients(int sendLimit);
 
 	/**
 	 * Configura o campo de remetente da mensagem.
