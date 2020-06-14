@@ -19,11 +19,11 @@ import br.com.colpepe.mailer.controller.BatchController;
 import br.com.colpepe.mailer.controller.exception.BatchControllerException;
 import br.com.colpepe.mailer.controller.exception.BatchControllerNoCredentialsException;
 import br.com.colpepe.mailer.controller.exception.BatchControllerNoFromException;
-import br.com.colpepe.mailer.controller.exception.BatchControllerNoListFilename;
-import br.com.colpepe.mailer.controller.exception.BatchControllerNoMaxPerMessageException;
-import br.com.colpepe.mailer.controller.exception.BatchControllerNoMessageBodyController;
-import br.com.colpepe.mailer.controller.exception.BatchControllerNoSendToLimitException;
-import br.com.colpepe.mailer.controller.exception.BatchControllerToListFileNotFound;
+import br.com.colpepe.mailer.controller.exception.BatchControllerNoRecipientListFilenameException;
+import br.com.colpepe.mailer.controller.exception.BatchControllerNoMaxRecipientsPerMessageException;
+import br.com.colpepe.mailer.controller.exception.BatchControllerNoMessageBodyException;
+import br.com.colpepe.mailer.controller.exception.BatchControllerNoMaxRecipientsTotalException;
+import br.com.colpepe.mailer.controller.exception.BatchControllerRecipientsListFileNotFoundException;
 import br.com.colpepe.mailer.service.smtp.SendMessageService;
 import br.com.colpepe.mailer.service.smtp.exception.SendMessageException;
 import br.com.colpepe.mailer.service.smtp.impl.SendMessageServiceImpl;
@@ -302,11 +302,11 @@ public class BatchControllerImpl implements BatchController {
 		}
 
 		if (0 == maxRecipientsPerMessage) {
-			throw new BatchControllerNoMaxPerMessageException();
+			throw new BatchControllerNoMaxRecipientsPerMessageException();
 		}
 
 		if (0 == maxRecipientsTotal) {
-			throw new BatchControllerNoSendToLimitException();
+			throw new BatchControllerNoMaxRecipientsTotalException();
 		}
 
 		if (null == from) {
@@ -314,16 +314,16 @@ public class BatchControllerImpl implements BatchController {
 		}
 
 		if (null == messageBody) {
-			throw new BatchControllerNoMessageBodyController();
+			throw new BatchControllerNoMessageBodyException();
 		}
 
 		if (null == toListFilename) {
-			throw new BatchControllerNoListFilename();
+			throw new BatchControllerNoRecipientListFilenameException();
 		} else {
 			File arquivo = new File(toListFilename);
 
 			if (!arquivo.exists()) {
-				throw new BatchControllerToListFileNotFound();
+				throw new BatchControllerRecipientsListFileNotFoundException();
 			}
 		}
 	}

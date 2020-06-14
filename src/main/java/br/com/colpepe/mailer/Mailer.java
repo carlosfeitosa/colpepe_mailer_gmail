@@ -1,5 +1,8 @@
 package br.com.colpepe.mailer;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -8,10 +11,10 @@ import br.com.colpepe.mailer.controller.impl.BatchControllerImpl;
 import br.com.colpepe.mailer.exception.MailerNoCredentialsException;
 import br.com.colpepe.mailer.exception.MailerNoEmailFileNameException;
 import br.com.colpepe.mailer.exception.MailerNoFromException;
-import br.com.colpepe.mailer.exception.MailerNoMaxPerMessageException;
-import br.com.colpepe.mailer.exception.MailerNoSendLimitException;
+import br.com.colpepe.mailer.exception.MailerNoMaxRecipientsMessageException;
+import br.com.colpepe.mailer.exception.MailerNoMaxRecipientsTotalException;
+import br.com.colpepe.mailer.exception.MailerNoRecipientsFileNameException;
 import br.com.colpepe.mailer.exception.MailerNoSubjectException;
-import br.com.colpepe.mailer.exception.MailerNoToFileNameException;
 
 /**
  * Classe main, interface com o usuário.
@@ -20,20 +23,21 @@ import br.com.colpepe.mailer.exception.MailerNoToFileNameException;
  *
  */
 public class Mailer {
+	private static final String ARG_CONFIG_FILENAME = "config=";
 	private static final String ARG_USERNAME = "username=";
 	private static final String ARG_PASSWORD = "password=";
 	private static final String ARG_TO_MESSAGE_LIMIT = "maxDestinatariosPorMensagem=";
 	private static final String ARG_MESSAGE_LIMIT = "maxDestinatariosTotal=";
 	private static final String ARG_USE_BCC = "useBBC=";
 	private static final String ARG_EMAIL_FILENAME = "emailFilename=";
-	private static final String ARG_TO_FILENAME = "toFilename=";
+	private static final String ARG_TO_FILENAME = "recipientListFilename=";
 	private static final String ARG_SUBJECT = "subject=";
 	private static final String ARG_FROM = "from=";
 
 	private static String username;
 	private static String password;
-	private static int maxDestinationPerMessage;
-	private static int sendLimit;
+	private static int maxRecipientsPerMessage;
+	private static int maxRecipientsTotal;
 	private static boolean useBCC;
 	private static String emailBodyFileName;
 	private static String toFileName;
@@ -48,7 +52,7 @@ public class Mailer {
 			+ "Arquivo contendo o corpo do e-mail			->	" + ARG_EMAIL_FILENAME + "\n"
 			+ "Arquivo contendo a lista de destinatários 		->	" + ARG_TO_FILENAME + "\n"
 			+ "Assunto							->	" + ARG_SUBJECT + "\n" + "Remetente						-> 	"
-			+ ARG_FROM;
+			+ ARG_FROM + "\n\n---> Para carregar as configurações através de arquivo  -> 	" + ARG_CONFIG_FILENAME + "\n";
 
 	static final Logger logger = Logger.getLogger(Mailer.class.getClass().getName());
 
@@ -63,8 +67,8 @@ public class Mailer {
 			checkParams();
 
 			controller.setCredentials(username, password);
-			controller.setMaxRecipientsPerMessage(maxDestinationPerMessage);
-			controller.setMaxRecipients(sendLimit);
+			controller.setMaxRecipientsPerMessage(maxRecipientsPerMessage);
+			controller.setMaxRecipients(maxRecipientsTotal);
 			controller.setUseBCC(useBCC);
 
 			controller.setMessageSubject(subject);
@@ -91,23 +95,28 @@ public class Mailer {
 	/**
 	 * Verifica se os parâmetros foram passados adequadamente.
 	 * 
-	 * @throws MailerNoCredentialsException   caso não sejam passadas as credenciais
-	 *                                        de acesso ao servidor
-	 * @throws MailerNoMaxPerMessageException caso nnao seja passado o número máximo
-	 *                                        de destinatários por mensagem
-	 * @throws MailerNoSendLimitException     caso não seja informado o limite de
-	 *                                        mensagens a enviar
-	 * @throws MailerNoEmailFileNameException caso não seja informado o nome do
-	 *                                        arquivo contendo o corpo do e-mail
-	 * @throws MailerNoToFileNameException    caso não seja informado o nome do
-	 *                                        arquivo contendo a lista de
-	 *                                        destinatários
-	 * @throws MailerNoSubjectException       caso não seja informado o assunto da
-	 *                                        mensagem
-	 * @throws MailerNoFromException          caso não seja informado um remetente
+	 * @throws MailerNoCredentialsException          caso não sejam passadas as
+	 *                                               credenciais de acesso ao
+	 *                                               servidor
+	 * @throws MailerNoMaxRecipientsMessageException caso não seja passado o número
+	 *                                               máximo de destinatários por
+	 *                                               mensagem
+	 * @throws MailerNoMaxRecipientsTotalException   caso não seja informado o
+	 *                                               limite de destinatários total a
+	 *                                               enviar
+	 * @throws MailerNoEmailFileNameException        caso não seja informado o nome
+	 *                                               do arquivo contendo o corpo do
+	 *                                               e-mail
+	 * @throws MailerNoRecipientsFileNameException   caso não seja informado o nome
+	 *                                               do arquivo contendo a lista de
+	 *                                               destinatários
+	 * @throws MailerNoSubjectException              caso não seja informado o
+	 *                                               assunto da mensagem
+	 * @throws MailerNoFromException                 caso não seja informado um
+	 *                                               remetente
 	 */
-	private static void checkParams() throws MailerNoCredentialsException, MailerNoMaxPerMessageException,
-			MailerNoSendLimitException, MailerNoEmailFileNameException, MailerNoToFileNameException,
+	private static void checkParams() throws MailerNoCredentialsException, MailerNoMaxRecipientsMessageException,
+			MailerNoMaxRecipientsTotalException, MailerNoEmailFileNameException, MailerNoRecipientsFileNameException,
 			MailerNoSubjectException, MailerNoFromException {
 
 		if (null == username) {
@@ -118,12 +127,12 @@ public class Mailer {
 			throw new MailerNoCredentialsException("Nenhuma senha foi informada");
 		}
 
-		if (0 == maxDestinationPerMessage) {
-			throw new MailerNoMaxPerMessageException();
+		if (0 == maxRecipientsPerMessage) {
+			throw new MailerNoMaxRecipientsMessageException();
 		}
 
-		if (0 == sendLimit) {
-			throw new MailerNoSendLimitException();
+		if (0 == maxRecipientsTotal) {
+			throw new MailerNoMaxRecipientsTotalException();
 		}
 
 		if (null == emailBodyFileName) {
@@ -131,7 +140,7 @@ public class Mailer {
 		}
 
 		if (null == toFileName) {
-			throw new MailerNoToFileNameException();
+			throw new MailerNoRecipientsFileNameException();
 		}
 
 		if (null == subject) {
@@ -147,8 +156,9 @@ public class Mailer {
 	 * Atualiza parametros para execução.
 	 * 
 	 * @param args parâmetros enviados pelo usuário
+	 * @throws IOException
 	 */
-	private static void updateParams(String[] args) {
+	private static void updateParams(String[] args) throws IOException {
 		for (int i = 0; i < args.length; i++) {
 			String param = args[i];
 
@@ -159,11 +169,38 @@ public class Mailer {
 	}
 
 	/**
+	 * Lê a configuração dos parâmetros a partir de um arquivo.
+	 * 
+	 * @throws IOException
+	 */
+	private static void readConfigurationFromFile(String fileName) throws IOException {
+		try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+			String param;
+
+			while ((param = reader.readLine()) != null) {
+				setParam(param, param.substring(param.indexOf('=') + 1));
+			}
+		}
+	}
+
+	/**
 	 * Configura um parametro da aplicação
 	 * 
 	 * @param param parâmetro
+	 * 
+	 * @throws IOException caso informado um parâmetro para configuração via arquivo
+	 *                     e o arquivo não for encontrado
 	 */
-	private static void setParam(String param, String value) {
+	private static void setParam(String param, String value) throws IOException {
+		if (param.startsWith(ARG_CONFIG_FILENAME)) {
+
+			readConfigurationFromFile(value);
+
+			// se informado um arquivo de configuração, as demais configurações passada via
+			// parâmetro pelo usuário são sobrescritas
+			return;
+		}
+
 		if (param.startsWith(ARG_USERNAME)) {
 			username = value;
 		}
@@ -173,11 +210,11 @@ public class Mailer {
 		}
 
 		if (param.startsWith(ARG_TO_MESSAGE_LIMIT)) {
-			maxDestinationPerMessage = Integer.valueOf(value);
+			maxRecipientsPerMessage = Integer.valueOf(value);
 		}
 
 		if (param.startsWith(ARG_MESSAGE_LIMIT)) {
-			sendLimit = Integer.valueOf(value);
+			maxRecipientsTotal = Integer.valueOf(value);
 		}
 
 		if (param.startsWith(ARG_USE_BCC)) {
